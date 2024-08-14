@@ -3,6 +3,9 @@ import {Express, Request, Response} from "express";
 import dotenv from "dotenv";
 import axios from "axios";
 import cors from "cors";
+import Parser from "rss-parser";
+
+let parser = new Parser();
 
 dotenv.config();
 
@@ -28,6 +31,12 @@ app.use(cors(), function(req, res, next) {
 app.get("/", (req: Request, res: Response) => {
   res.send("Working")
 });
+
+app.get("/feed", async (req: Request, res: Response) => {
+  const items = (await parser.parseURL("https://catholic-daily-reflections.com/feed")).items;
+  res.set("Access-Control-Allow-Origin", CLIENT_URL);
+  res.send(items);
+})
 
 app.post("/reverse-geocode", async (req: Request, res: Response) => {
   const latitude = req.body.latitude;
