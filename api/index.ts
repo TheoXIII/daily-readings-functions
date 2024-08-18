@@ -1,12 +1,12 @@
 import express from "express";
 import {Express, Request, Response} from "express";
+import { rateLimit } from 'express-rate-limit'
 import dotenv from "dotenv";
 import axios from "axios";
 import cors from "cors";
 import Parser from "rss-parser";
 //import * as PlayHT from "playht";
 import { TextToSpeechClient, protos } from "@google-cloud/text-to-speech"; 
-//import options from './read-daily-readings-5b360c5a020e.json'
 
 const projectId = "read-daily-readings"
 
@@ -23,38 +23,18 @@ if (process.env.RUN_ENV && process.env.RUN_ENV === "production")
 else
   CLIENT_URL = "*";
 
-/*if (process.env.PLAYHT_API_KEY && process.env.PLAYHT_USER_ID)
-  PlayHT.init({
-    apiKey: process.env.PLAYHT_API_KEY,
-    userId: process.env.PLAYHT_USER_ID,
-  });*/
-
-/*const options = {
-  credentials: {
-    client_email: "daily-readings-voice@read-daily-readings.iam.gserviceaccount.com",
-    private_key: process.env.GOOGLE_API_KEY
-  }
-}*/
-
 const client = new TextToSpeechClient({projectId});
 
-// configure your stream
-/*const streamingOptions: PlayHT.SpeechStreamOptions = {
-  // must use turbo for the best latency
-  voiceEngine: "PlayHT2.0-turbo",
-  // this voice id can be one of our prebuilt voices or your own voice clone id, refer to the`listVoices()` method for a list of supported voices.
-  voiceId:
-    "s3://voice-cloning-zero-shot/85bfd45f-c96e-4b4a-82e9-3ca72426d24c/original/manifest.json",
-  // you can pass any value between 8000 and 48000, 24000 is default
-  sampleRate: 44100,
-  // the generated audio encoding, supports 'raw' | 'mp3' | 'wav' | 'ogg' | 'flac' | 'mulaw'
-  outputFormat: 'mp3',
-  // playback rate of generated speech
-  speed: 1,
-};*/
 
-// s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+	standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+})
 
+// Apply the rate limiting middleware to all requests.
+app.use(limiter)
 
 app.use(express.json());
 
@@ -87,11 +67,6 @@ app.post("/reverse-geocode", async (req: Request, res: Response) => {
 app.get("/voice", async (req: Request, res: Response) => {
   if (req.query && typeof req.query.text === "string") {
     const text = decodeURI(req.query.text);
-    //const text = "This is a test"
-    console.log(text);
-    //const playHTStartTime = Date.now();
-    //let playHTTTFBMeasured = false;
-    //const stream = await PlayHT.stream(text, streamingOptions);
     const request : protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
       input: {text: text},
       voice: {languageCode: 'en-GB', ssmlGender: 'MALE'},
@@ -99,15 +74,7 @@ app.get("/voice", async (req: Request, res: Response) => {
     };
     try {
       const [response] = await client.synthesizeSpeech(request);
-      /*stream.on("data", (chunk) => {
-        if (!playHTTTFBMeasured) {
-          const playHTTTFB = Date.now() - playHTStartTime;
-          playHTTTFBMeasured = true;
-          res.setHeader('X-PlayHT-TTFB', playHTTTFB);
-        }
-      //});*/
       res.set('content-type', 'audio/mp3');
-      //stream.pipe(res);
       res.send(response.audioContent);
     } catch (e) {
       console.log("Error:",e)
