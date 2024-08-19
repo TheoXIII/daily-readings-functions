@@ -10,12 +10,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/credential-provider-web-identity": "^3.621.0",
     "@google-cloud/text-to-speech": "^5.3.0",
+    "@smithy/types": "^3.3.0",
+    "@vercel/functions": "^1.4.0",
     "axios": "^1.7.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
+    "google-auth-library": "^9.13.0",
     "playht": "^0.9.8",
     "rss-parser": "^3.13.0"
   },

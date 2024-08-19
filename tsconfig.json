@@ -3,10 +3,12 @@
       "sourceMap": true,
       "outDir": "dist",
       "target": "ESNext",
-      "module": "CommonJS",
+      "module": "NodeNext",
       "strict": true,
       "lib": ["esnext"],
       "esModuleInterop": true,
-      "resolveJsonModule": true
+      "resolveJsonModule": true,
+      "moduleResolution": "nodenext",
+      "skipLibCheck": true
     }
   }
