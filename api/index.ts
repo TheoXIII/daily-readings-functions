@@ -8,6 +8,7 @@ import Parser from "rss-parser";
 import { TextToSpeechClient, protos } from "@google-cloud/text-to-speech";
 import { ExternalAccountClient } from 'google-auth-library'; 
 import { getVercelOidcToken } from '@vercel/functions/oidc';
+import { getReading } from "../service/voice-readings-functions";
 
 let parser = new Parser();
 
@@ -78,9 +79,30 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.get("/feed", async (req: Request, res: Response) => {
+  const date = req.query.date;
   const items = (await parser.parseURL("https://catholic-daily-reflections.com/feed")).items;
+
+  const filteredItems = items.filter((elem) => elem.contentSnippet && elem.contentSnippet.includes(`${date},`));
+  let content;
+  let link;
+  let audio;
+  if (filteredItems.length > 0) {
+      const lines = filteredItems[0]["content:encoded"].split("\n");
+      let start;
+      let end;
+      for (const [i, line] of lines.entries()) {
+          if (!start && line.includes("https://widget.spreaker.com/player"))
+              start = i+1;
+          else if (start && !end && i != start && line.includes("<p style=\"text-align: center;\">"))
+              end = i;
+      }
+      content = lines.slice(start, end).join("\n");
+      audio = lines[start-1];
+      link = filteredItems[0].link;
+  }
+
   res.set("Access-Control-Allow-Origin", CLIENT_URL);
-  res.send(items);
+  res.send({content: content, audio: audio, link: link});
 })
 
 app.post("/reverse-geocode", async (req: Request, res: Response) => {
@@ -88,14 +110,16 @@ app.post("/reverse-geocode", async (req: Request, res: Response) => {
   const longitude = req.body.longitude;
   const {data} = await axios.get(`https://us1.locationiq.com/v1/reverse?key=${process.env.LOCATIONIQ_KEY}&lat=${latitude}&lon=${longitude}&format=json&`);
   res.set("Access-Control-Allow-Origin", CLIENT_URL);
-  res.send(data);
+  res.send({ //Limit API output to remove incentive for abuse.
+    country: data.address.country,
+    state: data.address.state
+  });
 });
 
-app.get("/voice", async (req: Request, res: Response) => {
-  if (req.query && typeof req.query.text === "string") {
-    const text = decodeURI(req.query.text);
-    console.log(text.length);
-    if (text.length < 10000) {
+app.get("/voice-universalis", async (req: Request, res: Response) => {
+  if (req.query && typeof req.query.date === "string" && typeof req.query.regionCode === "string" && typeof req.query.readingCode === "string" ) {
+    const text = await getReading(req.query.date, req.query.regionCode, req.query.readingCode);
+    if (text.length < 5000) {
       const request : protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
         input: {text: text},
         voice: {languageCode: 'en-GB', ssmlGender: 'MALE'},
