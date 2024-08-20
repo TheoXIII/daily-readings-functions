@@ -6,12 +6,6 @@ import axios from "axios";
 import cors from "cors";
 import Parser from "rss-parser";
 import { TextToSpeechClient, protos } from "@google-cloud/text-to-speech";
-import { ExternalAccountClient } from 'google-auth-library'; 
-import { getVercelOidcToken } from '@vercel/functions/oidc';
-
-// // @ts-ignore
-//import Speech from 'lmnt-node'
-
 import { getReading } from "../service/voice-readings-functions";
 
 let parser = new Parser();
