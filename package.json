@@ -23,6 +23,7 @@
     "google-auth-library": "^9.13.0",
     "jsdom": "^24.1.1",
     "jsonp": "^0.2.1",
+    "lmnt-node": "^1.2.3",
     "playht": "^0.9.8",
     "rss-parser": "^3.13.0"
   },
